@@ -1,0 +1,13 @@
+const router = require('express').Router();
+const c = require('../controllers/student.controller');
+const { protect } = require('../middleware/auth.middleware');
+const { authorize } = require('../middleware/role.middleware');
+router.use(protect);
+router.get('/performance', authorize('student'), c.getPerformance);
+router.get('/marks', authorize('student'), c.getMarks);
+router.get('/',       authorize('admin','teacher'), c.getAll);
+router.post('/',      authorize('admin'), c.create);
+router.get('/:id',    c.getOne);
+router.put('/:id',    authorize('admin'), c.update);
+router.delete('/:id', authorize('admin'), c.remove);
+module.exports = router;

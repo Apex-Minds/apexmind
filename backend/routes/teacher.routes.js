@@ -1,0 +1,18 @@
+const router = require('express').Router();
+const c = require('../controllers/teacher.controller');
+const attendance = require('../controllers/attendance.controller');
+const marks = require('../controllers/marks.controller');
+const { protect } = require('../middleware/auth.middleware');
+const { authorize } = require('../middleware/role.middleware');
+router.use(protect);
+router.get('/profile',        authorize('teacher'), c.getProfile);
+router.get('/class-students', authorize('teacher'), c.getClassStudents);
+router.get('/subjects',       authorize('teacher'), c.getSubjects);
+router.post('/attendance',    authorize('teacher','admin'), attendance.markBulk);
+router.post('/marks/bulk',    authorize('teacher','admin'), marks.bulkEnter);
+router.get('/',               authorize('admin'), c.getAll);
+router.post('/',              authorize('admin'), c.create);
+router.get('/:id',            authorize('admin'), c.getOne);
+router.put('/:id',            authorize('admin'), c.update);
+router.delete('/:id',         authorize('admin'), c.remove);
+module.exports = router;
