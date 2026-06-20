@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const publicApiBaseUrl = process.env.REACT_APP_API_URL || '/api';
+
 const publicApi = axios.create({
-  baseURL: '/api/public',
+  baseURL: `${publicApiBaseUrl.replace(/\/$/, '')}/public`,
 });
 
 export const fetchNewsEvents = (params = {}) =>
