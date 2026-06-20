@@ -12,8 +12,16 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const stored = localStorage.getItem('apexminds_user');
     if (stored) {
-      const parsed = JSON.parse(stored);
-      setUser(parsed);
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed && typeof parsed === 'object') {
+          setUser(parsed);
+        } else {
+          localStorage.removeItem('apexminds_user');
+        }
+      } catch (err) {
+        localStorage.removeItem('apexminds_user');
+      }
     }
     setLoading(false);
   }, []);

@@ -6,11 +6,24 @@ const api = axios.create({
   baseURL: apiBaseUrl,
 });
 
+const readStoredUser = () => {
+  const stored = localStorage.getItem('apexminds_user');
+  if (!stored) return null;
+
+  try {
+    const parsed = JSON.parse(stored);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (err) {
+    localStorage.removeItem('apexminds_user');
+    return null;
+  }
+};
+
 // Attach token from localStorage on every request
 api.interceptors.request.use((config) => {
-  const stored = localStorage.getItem('apexminds_user');
-  if (stored) {
-    const { token } = JSON.parse(stored);
+  const user = readStoredUser();
+  if (user?.token) {
+    const { token } = user;
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
