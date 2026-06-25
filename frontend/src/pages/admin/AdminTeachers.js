@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MdAdd, MdDelete, MdClose } from 'react-icons/md';
+import { MdAdd, MdDelete, MdClose, MdEdit } from 'react-icons/md';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
 
@@ -10,6 +10,9 @@ export default function AdminTeachers() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', password: '', teachSubject: '', schoolClass: '' });
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedTeacher, setSelectedTeacher] = useState(null);
+  const [assignForm, setAssignForm] = useState({ teachSubject: '', schoolClass: '' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { loadData(); }, []);
@@ -59,6 +62,34 @@ export default function AdminTeachers() {
       setTeachers((prev) => prev.filter((t) => t._id !== id));
     } catch {
       toast.error('Failed to delete teacher');
+    }
+  };
+
+  const openAssignModal = (teacher) => {
+    setSelectedTeacher(teacher);
+    setAssignForm({
+      teachSubject: teacher.teachSubject?._id || '',
+      schoolClass: teacher.schoolClass?._id || '',
+    });
+    setShowAssignModal(true);
+  };
+
+  const handleAssign = async (e) => {
+    e.preventDefault();
+    if (!selectedTeacher) return;
+
+    setSaving(true);
+    try {
+      await api.put(`/admin/teachers/${selectedTeacher._id}`, assignForm);
+      toast.success('Teacher assignment updated');
+      setShowAssignModal(false);
+      setSelectedTeacher(null);
+      setAssignForm({ teachSubject: '', schoolClass: '' });
+      loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update assignment');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -112,9 +143,14 @@ export default function AdminTeachers() {
                       ) : '—'}
                     </td>
                     <td>
-                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(t._id, t.name)}>
-                        <MdDelete size={14} /> Remove
-                      </button>
+                      <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
+                        <button className="btn btn-outline btn-sm" onClick={() => openAssignModal(t)}>
+                          <MdEdit size={14} /> Assign Course
+                        </button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(t._id, t.name)}>
+                          <MdDelete size={14} /> Remove
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -173,6 +209,62 @@ export default function AdminTeachers() {
                 <button type="button" className="btn btn-outline" onClick={() => setShowModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>
                   {saving ? 'Adding…' : 'Add Teacher'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showAssignModal && selectedTeacher && (
+        <div className="modal-overlay" onClick={() => setShowAssignModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Assign Course</h2>
+              <button className="modal-close" onClick={() => setShowAssignModal(false)}><MdClose /></button>
+            </div>
+            <form onSubmit={handleAssign}>
+              <p className="text-sm text-muted" style={{ marginBottom: 16 }}>
+                Reassign <strong>{selectedTeacher.name}</strong> to a subject and class.
+              </p>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Subject</label>
+                  <select
+                    className="form-control"
+                    value={assignForm.teachSubject}
+                    onChange={(e) => setAssignForm({ ...assignForm, teachSubject: e.target.value })}
+                  >
+                    <option value="">— Optional —</option>
+                    {subjects.map((s) => (
+                      <option key={s._id} value={s._id}>
+                        {s.subName} ({s.subCode})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Class</label>
+                  <select
+                    className="form-control"
+                    value={assignForm.schoolClass}
+                    onChange={(e) => setAssignForm({ ...assignForm, schoolClass: e.target.value })}
+                  >
+                    <option value="">— Optional —</option>
+                    {classes.map((c) => (
+                      <option key={c._id} value={c._id}>
+                        {c.className}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-4" style={{ justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn-outline" onClick={() => setShowAssignModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  {saving ? 'Saving…' : 'Save Assignment'}
                 </button>
               </div>
             </form>

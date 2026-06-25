@@ -13,6 +13,7 @@ router.delete('/students/:id', c.deleteStudent);
 
 router.get('/teachers',     c.getTeachers);
 router.post('/teachers',    c.createTeacher);
+router.put('/teachers/:id',  c.updateTeacher);
 router.delete('/teachers/:id', c.deleteTeacher);
 
 router.get('/classes',      c.getClasses);

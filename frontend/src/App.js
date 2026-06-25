@@ -63,6 +63,9 @@ const PublicAuthRoute = ({ children }) => {
 const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<PublicAuthRoute><LoginPage /></PublicAuthRoute>} />
+    <Route path="/admin/login" element={<Navigate to="/login?portal=admin" replace />} />
+    <Route path="/teacher/login" element={<Navigate to="/login?portal=teacher" replace />} />
+    <Route path="/student/login" element={<Navigate to="/login?portal=student" replace />} />
 
     <Route element={<WebsiteLayout />}>
       <Route path="/" element={<HomePage />} />

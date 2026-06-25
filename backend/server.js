@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
-const fs = require('fs');
 const connectDB = require('./config/db');
 
 dotenv.config();
@@ -33,13 +32,11 @@ app.use('/api/public',     require('./routes/public.routes'));
 
 if (process.env.NODE_ENV === 'production') {
   const buildPath = path.join(__dirname, '../frontend/build');
-  if (fs.existsSync(buildPath)) {
-    app.use(express.static(buildPath));
-    app.get('*', (req, res, next) => {
-      if (req.path.startsWith('/api')) return next();
-      res.sendFile(path.join(buildPath, 'index.html'));
-    });
-  }
+  app.use(express.static(buildPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(buildPath, 'index.html'));
+  });
 }
 
 app.use(require('./middleware/error.middleware'));

@@ -6,18 +6,24 @@ import api from '../../utils/api';
 export default function AdminSubjects() {
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
+  const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ subName: '', subCode: '', sessions: '', sclassName: '' });
+  const [form, setForm] = useState({ subName: '', subCode: '', sessions: '', sclassName: '', teacher: '' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     try {
-      const [sRes, cRes] = await Promise.all([api.get('/admin/subjects'), api.get('/admin/classes')]);
+      const [sRes, cRes, tRes] = await Promise.all([
+        api.get('/admin/subjects'),
+        api.get('/admin/classes'),
+        api.get('/admin/teachers'),
+      ]);
       setSubjects(sRes.data.data || []);
       setClasses(cRes.data.data || []);
+      setTeachers(tRes.data.data || []);
     } catch { toast.error('Failed to load subjects'); }
     finally { setLoading(false); }
   };
@@ -30,7 +36,7 @@ export default function AdminSubjects() {
       await api.post('/admin/subjects', form);
       toast.success('Subject created');
       setShowModal(false);
-      setForm({ subName: '', subCode: '', sessions: '', sclassName: '' });
+      setForm({ subName: '', subCode: '', sessions: '', sclassName: '', teacher: '' });
       loadData();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to create subject');
@@ -134,6 +140,16 @@ export default function AdminSubjects() {
                     {classes.map((c) => <option key={c._id} value={c._id}>{c.className}</option>)}
                   </select>
                 </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Assign to Teacher</label>
+                <select className="form-control" value={form.teacher}
+                  onChange={(e) => setForm({ ...form, teacher: e.target.value })}>
+                  <option value="">â€” Optional â€”</option>
+                  {teachers.map((t) => (
+                    <option key={t._id} value={t._id}>{t.name}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex gap-2 mt-4" style={{ justifyContent: 'flex-end' }}>
                 <button type="button" className="btn btn-outline" onClick={() => setShowModal(false)}>Cancel</button>

@@ -158,14 +158,69 @@ exports.createTeacher = async (req, res) => {
     });
 
     if (teachSubject) {
+      const subject = await Subject.findById(teachSubject);
+      if (subject?.teacher && subject.teacher.toString() !== teacher._id.toString()) {
+        await Teacher.findByIdAndUpdate(subject.teacher, { $pull: { subjects: teachSubject } });
+      }
       await Subject.findByIdAndUpdate(teachSubject, { teacher: teacher._id });
     }
     if (schoolClass) {
+      const classDoc = await Class.findById(schoolClass);
+      if (classDoc?.classTeacher && classDoc.classTeacher.toString() !== teacher._id.toString()) {
+        await Teacher.findByIdAndUpdate(classDoc.classTeacher, { $pull: { classes: schoolClass } });
+      }
       await Class.findByIdAndUpdate(schoolClass, { classTeacher: teacher._id });
     }
 
     const populated = await Teacher.findById(teacher._id).populate('user subjects classes');
     success(res, formatTeacher(populated.toObject()), 201);
+  } catch (e) { fail(res, e.message, 500); }
+};
+
+exports.updateTeacher = async (req, res) => {
+  try {
+    const teacher = await Teacher.findById(req.params.id).populate('subjects classes');
+    if (!teacher) {
+      return fail(res, 'Teacher not found', 404);
+    }
+
+    const { teachSubject, schoolClass, phone, teacherId } = req.body;
+    const previousSubjectId = teacher.subjects?.[0]?._id?.toString() || teacher.subjects?.[0]?.toString() || null;
+    const previousClassId = teacher.classes?.[0]?._id?.toString() || teacher.classes?.[0]?.toString() || null;
+    const nextSubjectId = teachSubject || null;
+    const nextClassId = schoolClass || null;
+
+    if (previousSubjectId && previousSubjectId !== nextSubjectId) {
+      await Subject.findByIdAndUpdate(previousSubjectId, { $unset: { teacher: '' } });
+    }
+    if (previousClassId && previousClassId !== nextClassId) {
+      await Class.findByIdAndUpdate(previousClassId, { $unset: { classTeacher: '' } });
+    }
+
+    teacher.teacherId = teacherId ?? teacher.teacherId;
+    teacher.phone = phone ?? teacher.phone;
+    teacher.subjects = nextSubjectId ? [nextSubjectId] : [];
+    teacher.classes = nextClassId ? [nextClassId] : [];
+    await teacher.save();
+
+    if (nextSubjectId) {
+      const subject = await Subject.findById(nextSubjectId);
+      if (subject?.teacher && subject.teacher.toString() !== teacher._id.toString()) {
+        await Teacher.findByIdAndUpdate(subject.teacher, { $pull: { subjects: nextSubjectId } });
+      }
+      await Subject.findByIdAndUpdate(nextSubjectId, { teacher: teacher._id });
+    }
+
+    if (nextClassId) {
+      const schoolClassDoc = await Class.findById(nextClassId);
+      if (schoolClassDoc?.classTeacher && schoolClassDoc.classTeacher.toString() !== teacher._id.toString()) {
+        await Teacher.findByIdAndUpdate(schoolClassDoc.classTeacher, { $pull: { classes: nextClassId } });
+      }
+      await Class.findByIdAndUpdate(nextClassId, { classTeacher: teacher._id });
+    }
+
+    const populated = await Teacher.findById(teacher._id).populate('user subjects classes');
+    success(res, formatTeacher(populated.toObject()));
   } catch (e) { fail(res, e.message, 500); }
 };
 
@@ -220,15 +275,19 @@ exports.getSubjects = async (req, res) => {
 
 exports.createSubject = async (req, res) => {
   try {
-    const { subName, subCode, sessions, sclassName } = req.body;
+    const { subName, subCode, sessions, sclassName, teacher } = req.body;
     const created = await Subject.create({
       name: subName,
       code: subCode,
       sessions: Number(sessions || 0),
       sclassName,
+      teacher: teacher || null,
     });
     if (sclassName) {
       await Class.findByIdAndUpdate(sclassName, { $addToSet: { subjects: created._id } });
+    }
+    if (teacher) {
+      await Teacher.findByIdAndUpdate(teacher, { $addToSet: { subjects: created._id } });
     }
     const populated = await Subject.findById(created._id).populate({ path: 'teacher', populate: { path: 'user' } }).populate('sclassName');
     success(res, formatSubject(populated.toObject()), 201);
